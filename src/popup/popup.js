@@ -24,10 +24,26 @@ extractBtn.addEventListener('click', async () => {
       throw new Error('No active tab found');
     }
 
+    // Check if we can access the tab
+    if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://'))) {
+      showStatus('❌ Cannot extract from Chrome internal pages. Try a regular website.', 'error');
+      setLoading(false);
+      return;
+    }
+
+    // Try to inject content script if needed
+    await ensureContentScriptLoaded(tab.id);
+
     // Send extraction message to content script
     chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_PAGE' }, (response) => {
       if (chrome.runtime.lastError) {
-        showStatus('❌ Error: ' + chrome.runtime.lastError.message, 'error');
+        // Content script not loaded - show helpful message
+        const errorMsg = chrome.runtime.lastError.message;
+        if (errorMsg.includes('Receiving end does not exist')) {
+          showStatus('❌ Please refresh the page and try again.', 'error');
+        } else {
+          showStatus('❌ Error: ' + errorMsg, 'error');
+        }
         setLoading(false);
         return;
       }
@@ -95,6 +111,29 @@ function handleExtractionSuccess(data) {
       showStatus('✅ Extracted! Click "Copy to Clipboard" to copy data.', 'success');
       setLoading(false);
     });
+}
+
+/**
+ * Ensure content script is loaded in the tab
+ */
+async function ensureContentScriptLoaded(tabId) {
+  try {
+    // Try to ping the content script
+    await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+  } catch (error) {
+    // Content script not loaded, inject it
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['src/content/content.js']
+      });
+      // Wait a bit for script to initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (injectError) {
+      console.error('Failed to inject content script:', injectError);
+      throw new Error('Could not load extension on this page. Try refreshing.');
+    }
+  }
 }
 
 /**

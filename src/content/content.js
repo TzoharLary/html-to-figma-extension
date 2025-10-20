@@ -1008,6 +1008,12 @@ function mapLayoutAlign(styles) {
 
 // Listen for extraction requests from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PING') {
+    // Simple health check
+    sendResponse({ success: true, ready: true });
+    return true;
+  }
+  
   if (message.type === 'EXTRACT_PAGE') {
     const result = performExtraction();
     sendResponse(result);

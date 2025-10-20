@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="canvas16" width="16" height="16"></canvas>
+<canvas id="canvas48" width="48" height="48"></canvas>
+<canvas id="canvas128" width="128" height="128"></canvas>
+<script>
+function createIcon(canvasId, size) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  
+  // Background
+  ctx.fillStyle = '#5551FF';
+  ctx.fillRect(0, 0, size, size);
+  
+  // F letter
+  ctx.fillStyle = 'white';
+  ctx.font = `bold ${size * 0.7}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('F', size/2, size/2);
+  
+  // Download
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `icon${size}.png`;
+    a.click();
+  });
+}
+
+setTimeout(() => {
+  createIcon('canvas16', 16);
+  setTimeout(() => createIcon('canvas48', 48), 100);
+  setTimeout(() => createIcon('canvas128', 128), 200);
+}, 100);
+</script>
+</body>
+</html>
